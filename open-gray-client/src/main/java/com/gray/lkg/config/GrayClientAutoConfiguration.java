@@ -1,11 +1,7 @@
 package com.gray.lkg.config;
 
-import com.gray.lkg.intercepter.filter.GrayFilterInterceptor;
-import com.gray.lkg.intercepter.filter.CommonFilterInterceptor;
-import com.gray.lkg.model.GrayServerProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
@@ -17,15 +13,6 @@ import org.springframework.context.annotation.Configuration;
 @EnableConfigurationProperties(GrayServerProperties.class)
 @ConditionalOnProperty(name = "global.gray.switch",  matchIfMissing = false)
 public class GrayClientAutoConfiguration {
-
-
-    // 过滤器拦截器 - 
-    @Bean
-    public CommonFilterInterceptor grayFilterInterceptor() {
-        return new GrayFilterInterceptor();
-    }
-
-
 
 
 
