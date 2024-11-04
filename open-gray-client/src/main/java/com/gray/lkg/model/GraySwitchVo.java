@@ -16,11 +16,23 @@ import java.util.concurrent.ThreadLocalRandom;
 @JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy.class)
 public class GraySwitchVo {
 
+
     private String switchName;
 
     private String serverName;
 
-    private String ip;
+    private Long version;
+
+    /**
+     * 灰度类型 0 业务灰度  1 流量灰度
+     */
+    private Integer grayType;
+
+
+    // ---------------- 灰度核心参数 ----------------
+
+    private List<String> instanceList;
+    private Integer chooseAll;
 
     private String oldDownStream;
 
@@ -31,31 +43,36 @@ public class GraySwitchVo {
     private String newUrl;
 
     /**
-     * 灰度类型 0 业务灰度
-     */
-    private Integer grayType;
-
-    /**
      * 灰度条件表达式
      */
     private String grayCondition;
 
+    /**
+     * 0 JAVA  1 GO  2 Python
+     */
     private Integer languageType;
-
-    private Integer status;
-
-    private Integer globalStatus;
 
     /**
      * 按权重
      */
-    private List<GrayWeight> grayWeightList;
+    private GrayWeight grayWeight;
 
     /**
      * 按次数
      */
-    private List<GrayTime> grayTimeList;
+    private GrayTime grayTime;
 
+    /**
+     * 当controlType = 0 是 status才有意义
+     * 0 关闭
+     * 1 开启
+     */
+    private Integer status;
+
+    /**
+     * 开关控制类型： 0 按灰度控制 1 全走新流量 2 全走老流量
+     */
+    private Integer controlType;
 
 
     @Data
@@ -85,10 +102,16 @@ public class GraySwitchVo {
 
     @Data
     @JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy.class)
-    private static class GrayTime{
+    private static class GrayTime {
 
+        /**
+         * 多少次
+         */
         private Integer grayCount;
 
+        /**
+         * 固定基于秒
+         */
         private Integer grayPeriod;
     }
 }

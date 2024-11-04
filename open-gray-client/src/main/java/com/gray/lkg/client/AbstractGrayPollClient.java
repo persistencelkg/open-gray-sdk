@@ -1,12 +1,22 @@
 package com.gray.lkg.client;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.gray.lkg.core.GrayDispatchManager;
+import com.gray.lkg.core.GraySwitchService;
+import com.gray.lkg.model.ControlEnum;
+import com.gray.lkg.model.GrayEvent;
+import com.gray.lkg.model.GraySwitchResponse;
 import com.gray.lkg.model.GraySwitchVo;
 import io.github.persistence.BasicLongPollClient;
 import io.github.persistence.LongPoolConfig;
 import lombok.extern.slf4j.Slf4j;
+import org.lkg.core.DynamicConfigManger;
+import org.lkg.enums.TrueFalseEnum;
 import org.lkg.request.InternalRequest;
 import org.lkg.request.InternalResponse;
 import org.lkg.request.SimpleRequestUtil;
+import org.lkg.simple.NetUtils;
+import org.lkg.simple.ObjectUtil;
 import org.lkg.simple.ServerInfo;
 
 import java.util.HashMap;
@@ -20,10 +30,12 @@ import java.util.Objects;
  * @date: 2023/7/17 9:58 PM
  */
 @Slf4j
-public abstract class AbstractGrayPollClient extends BasicLongPollClient {
+public abstract class AbstractGrayPollClient extends BasicLongPollClient implements GraySwitchService {
 
     private final Map<String, Object> params;
-    private String version;
+
+    private final Map<String, GraySwitchVo> graySwitchVoMap = new HashMap<>();
+
     protected AbstractGrayPollClient(int longPollInterval, boolean enableLongPool, LongPoolConfig longPoolConfig) {
         super(longPollInterval, enableLongPool, longPoolConfig);
         params = new HashMap<>();
@@ -34,7 +46,25 @@ public abstract class AbstractGrayPollClient extends BasicLongPollClient {
 
     @Override
     protected void dealWithLongLink(LongPoolConfig longPoolConfig) {
-
+        // 对于服务端推送结果 需要检查是否not modify、版本比较
+        InternalResponse response = SimpleRequestUtil.request(InternalRequest.createPostRequest(longPoolConfig.getLongLinkUrl(), InternalRequest.BodyEnum.RAW, params));
+        if (response.is4XXFail()) {
+            handleNewStrategyList(null);
+            return;
+        }
+        // Not modify
+        if (response.getStatusCode() >= 300) {
+            return;
+        }
+        if (response.is2XXSuccess()) {
+            GraySwitchResponse entity = response.toEntity(GraySwitchResponse.class);
+            if (Objects.nonNull(entity) && Objects.nonNull(entity.getData())) {
+                List<GraySwitchVo> data = entity.getData();
+                handleNewStrategyList(data);
+            } else {
+                handleNewStrategyList(null);
+            }
+        }
     }
 
 
@@ -43,15 +73,69 @@ public abstract class AbstractGrayPollClient extends BasicLongPollClient {
         InternalResponse response = SimpleRequestUtil.request(InternalRequest.createPostRequest(longPoolConfig.getPollUrl(), InternalRequest.BodyEnum.RAW, params));
         if (response.is2XXSuccess()) {
             // 处理数据
-
-            log.info("load gray strategy:{}", 0);
+            GraySwitchResponse entity = response.toEntity(GraySwitchResponse.class);
+            if (Objects.nonNull(entity) && Objects.nonNull(entity.getData())) {
+                List<GraySwitchVo> data = entity.getData();
+                // 主动拉取不需要版本控制， 因为从服务端拉取的肯定是最新的
+                handleNewStrategyListWithOutVersion(data);
+            }
+            log.info("success load gray strategy:{}", entity);
         } else {
-            log.error("long poll get data fail:{}", response.getExceptionList());
+            log.error("fail long poll get data, reason:{}", response.getExceptionList());
         }
     }
 
+    private void handleNewStrategyListWithOutVersion(List<GraySwitchVo> list) {
+        handleNewStrategyList(list, false);
+    }
 
     private void handleNewStrategyList(List<GraySwitchVo> list) {
-        //
+        handleNewStrategyList(list, true);
+    }
+
+    private void handleNewStrategyList(List<GraySwitchVo> list, boolean needCompareVersion) {
+        HashMap<String, GraySwitchVo> back = new HashMap<>(graySwitchVoMap);
+        if (ObjectUtil.isNotEmpty(list)) {
+            // check switch version
+            for (GraySwitchVo graySwitchVo : list) {
+                String switchName = graySwitchVo.getSwitchName();
+                GraySwitchVo oldVo = back.get(switchName);
+                if (needCompareVersion &&
+                        Objects.nonNull(oldVo) && graySwitchVo.getVersion() <= oldVo.getVersion()) {
+                    continue;
+                }
+                // 条件匹配
+                if (!matchCondition(graySwitchVo)) {
+                    continue;
+                }
+                // 处理新的
+                graySwitchVoMap.put(switchName, graySwitchVo);
+                GraySwitchVo remove = back.remove(switchName);
+                // 分发新的
+                if (!Objects.equals(remove, graySwitchVo)) {
+                    GrayDispatchManager.dispatch(new GrayEvent(switchName, remove, graySwitchVo));
+                    log.debug("gray switch change from:{} to:{}", remove, graySwitchVo);
+                }
+            }
+        }
+
+    }
+
+    private boolean matchCondition(GraySwitchVo graySwitchVo) {
+        // 状态是否开启
+        if (Objects.equals(ControlEnum.ALL_OLD.getType(), graySwitchVo.getGrayType()) || TrueFalseEnum.isFalse(graySwitchVo.getStatus())) {
+            return false;
+        }
+        // 全选默认匹配
+        if (TrueFalseEnum.isTrue(graySwitchVo.getChooseAll())) {
+            return true;
+        }
+        // 机器是否匹配 [需要配合sre 指定机器]
+        List<String> instanceList = graySwitchVo.getInstanceList();
+        if (ObjectUtil.isNotEmpty(instanceList)) {
+            boolean bottomInLineMatch = instanceList.contains(ServerInfo.innerIp());
+            return instanceList.contains(System.getProperty(DynamicConfigManger.getConfigValue("local-instance-name", "INSTANCE_NAME"))) || bottomInLineMatch;
+        }
+        return false;
     }
 }
