@@ -1,6 +1,7 @@
 package com.gray.lkg.core;
 
 import com.gray.lkg.model.GraySwitchVo;
+import com.gray.lkg.model.GrayTypeEnum;
 
 import java.util.List;
 
@@ -11,7 +12,11 @@ import java.util.List;
  */
 public interface GraySwitchService {
 
-    List<GraySwitchVo> listAllGraySwitch();
+    List<GraySwitchVo> listAllGraySwitch(GrayTypeEnum typeEnum);
+
+    default List<GraySwitchVo> listAllGraySwitch() {
+        return listAllGraySwitch(null);
+    }
 
     GraySwitchVo getBySwitchName(String switchName);
 }

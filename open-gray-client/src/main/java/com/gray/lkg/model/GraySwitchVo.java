@@ -36,11 +36,11 @@ public class GraySwitchVo {
 
     private String oldDownStream;
 
-    private String oldUrl;
+    private String oldUri;
 
     private String newDownStream;
 
-    private String newUrl;
+    private String newUri;
 
     /**
      * 灰度条件表达式
@@ -77,7 +77,7 @@ public class GraySwitchVo {
 
     @Data
     @JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy.class)
-    private static class GrayWeight {
+    public static class GrayWeight {
         /**
          * 多少流量走老逻辑
          */
@@ -102,7 +102,7 @@ public class GraySwitchVo {
 
     @Data
     @JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy.class)
-    private static class GrayTime {
+    public static class GrayTime {
 
         /**
          * 多少次

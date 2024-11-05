@@ -1,12 +1,8 @@
 package com.gray.lkg.client;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.gray.lkg.core.GrayDispatchManager;
 import com.gray.lkg.core.GraySwitchService;
-import com.gray.lkg.model.ControlEnum;
-import com.gray.lkg.model.GrayEvent;
-import com.gray.lkg.model.GraySwitchResponse;
-import com.gray.lkg.model.GraySwitchVo;
+import com.gray.lkg.model.*;
 import io.github.persistence.BasicLongPollClient;
 import io.github.persistence.LongPoolConfig;
 import lombok.extern.slf4j.Slf4j;
@@ -15,14 +11,11 @@ import org.lkg.enums.TrueFalseEnum;
 import org.lkg.request.InternalRequest;
 import org.lkg.request.InternalResponse;
 import org.lkg.request.SimpleRequestUtil;
-import org.lkg.simple.NetUtils;
 import org.lkg.simple.ObjectUtil;
 import org.lkg.simple.ServerInfo;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @description:
@@ -34,7 +27,7 @@ public abstract class AbstractGrayPollClient extends BasicLongPollClient impleme
 
     private final Map<String, Object> params;
 
-    private final Map<String, GraySwitchVo> graySwitchVoMap = new HashMap<>();
+    private final Map<String, GraySwitchVo> LOCAL_CACHE = new HashMap<>();
 
     protected AbstractGrayPollClient(int longPollInterval, boolean enableLongPool, LongPoolConfig longPoolConfig) {
         super(longPollInterval, enableLongPool, longPoolConfig);
@@ -42,6 +35,20 @@ public abstract class AbstractGrayPollClient extends BasicLongPollClient impleme
         params.put("gray_version", "v1.0");
         params.put("server_name", ServerInfo.name());
     }
+
+    @Override
+    public List<GraySwitchVo> listAllGraySwitch(GrayTypeEnum grayTypeEnum) {
+        if (Objects.isNull(grayTypeEnum)) {
+            return new ArrayList<>(LOCAL_CACHE.values());
+        }
+        return LOCAL_CACHE.values().stream().filter(ref -> Objects.equals(ref.getGrayType(), grayTypeEnum.getCode())).collect(Collectors.toList());
+    }
+
+    @Override
+    public GraySwitchVo getBySwitchName(String switchName) {
+        return LOCAL_CACHE.get(switchName);
+    }
+
 
 
     @Override
@@ -94,7 +101,7 @@ public abstract class AbstractGrayPollClient extends BasicLongPollClient impleme
     }
 
     private void handleNewStrategyList(List<GraySwitchVo> list, boolean needCompareVersion) {
-        HashMap<String, GraySwitchVo> back = new HashMap<>(graySwitchVoMap);
+        HashMap<String, GraySwitchVo> back = new HashMap<>(LOCAL_CACHE);
         if (ObjectUtil.isNotEmpty(list)) {
             // check switch version
             for (GraySwitchVo graySwitchVo : list) {
@@ -109,7 +116,7 @@ public abstract class AbstractGrayPollClient extends BasicLongPollClient impleme
                     continue;
                 }
                 // 处理新的
-                graySwitchVoMap.put(switchName, graySwitchVo);
+                LOCAL_CACHE.put(switchName, graySwitchVo);
                 GraySwitchVo remove = back.remove(switchName);
                 // 分发新的
                 if (!Objects.equals(remove, graySwitchVo)) {
