@@ -16,6 +16,6 @@ public class GrayEvent {
     private GraySwitchVo oldSwitch;
     private GraySwitchVo newSwitch;
 
-    private GrayEvent() {}
+    public GrayEvent(GraySwitchVo graySwitchVo) {}
 }
 

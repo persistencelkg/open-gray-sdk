@@ -2,6 +2,7 @@ package com.gray.lkg.core;
 
 import com.gray.lkg.model.GrayEvent;
 import com.gray.lkg.model.GraySwitchVo;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.lkg.simple.ObjectUtil;
 
@@ -24,6 +25,7 @@ public class GrayDispatchManager {
 
     private static final List<Consumer<GrayEvent>> list = new ArrayList<>();
 
+    @Getter
     private static GraySwitchService graySwitchService;
 
 
