@@ -1,7 +1,6 @@
 package com.gray.lkg.core;
 
 import com.gray.lkg.client.GrayClient;
-import com.gray.lkg.model.GrayEvent;
 import com.gray.lkg.model.GraySwitchVo;
 import com.gray.lkg.model.GrayTypeEnum;
 import lombok.extern.slf4j.Slf4j;
@@ -9,7 +8,8 @@ import org.lkg.enums.StringEnum;
 import org.lkg.simple.ObjectUtil;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * 对基于新老url切换，基于流量灰度切换服务核心处理
@@ -19,35 +19,30 @@ import java.util.*;
  */
 @Slf4j
 public abstract class AbstractGrayInterceptor<Req, Resp> {
-
-    private final Map<String, GraySwitchVo> graySwitchMetaMap = new HashMap<>();
-    private final Map<String, GrayClient> clientMap = new HashMap<>();
+//
+//    private final Map<String, GraySwitchVo> graySwitchMetaMap = new HashMap<>();
+//    private final Map<String, GrayClient> clientMap = new HashMap<>();
     private final GraySwitchService graySwitchService;
 
     public AbstractGrayInterceptor() {
-        GrayDispatchManager.addGrayEvent(this::onGrayEvent);
+//        GrayDispatchManager.addGrayEvent(this::onGrayEvent);
         graySwitchService = GrayDispatchManager.getGraySwitchService();
-        if (Objects.nonNull(graySwitchService)) {
-            List<GraySwitchVo> graySwitchVos = graySwitchService.listAllGraySwitch();
-            Optional.ofNullable(graySwitchVos).ifPresent(ref -> ref.stream().map(GrayEvent::new).forEach(this::onGrayEvent));
-        }
+//        if (Objects.nonNull(graySwitchService)) {
+//            List<GraySwitchVo> graySwitchVos = graySwitchService.listAllGraySwitch();
+//            Optional.ofNullable(graySwitchVos).ifPresent(ref -> ref.stream().map(GrayEvent::new).forEach(this::onGrayEvent));
+//        }
     }
 
-    private void onGrayEvent(GrayEvent grayEvent) {
-        GraySwitchVo newSwitch = grayEvent.getNewSwitch();
-        if (Objects.isNull(newSwitch) && clientMap.containsKey(grayEvent.getKey())) {
-            try {
-                clientMap.get(grayEvent.getKey()).close();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        // todo 什么时候更新clientMap？
-        graySwitchMetaMap.put(grayEvent.getKey(), newSwitch);
-    }
+//    private void onGrayEvent(GrayEvent grayEvent) {
+//        GraySwitchVo newSwitch = grayEvent.getNewSwitch();
+//        if (Objects.isNull(newSwitch) && clientMap.containsKey(grayEvent.getKey())) {
+//            clientMap.get(grayEvent.getKey()).close();
+//        }
+//        graySwitchMetaMap.put(grayEvent.getKey(), newSwitch);
+//    }
 
 
-    protected Resp flowIntercept(GrayExecutor<Req, Resp> executor, String url, String uri) throws Throwable {
+    protected Resp flowIntercept(GrayExecutor<Req, Resp> executor, String url, String uri) throws IOException {
         List<GraySwitchVo> graySwitchVos = graySwitchService.listAllGraySwitch(GrayTypeEnum.FLOW_GRAY);
         if (ObjectUtil.isEmpty(graySwitchVos)) {
             return executor.execute();
@@ -56,7 +51,7 @@ public abstract class AbstractGrayInterceptor<Req, Resp> {
         if (Objects.isNull(graySwitchVo)) {
             return executor.execute();
         }
-        if (!clientMap.containsKey(graySwitchVo.getSwitchName())) {
+        if (!GrayClient.containsSwitch(graySwitchVo.getSwitchName())) {
             return executor.execute();
         }
         // 基于uri 优先级最高
@@ -72,7 +67,7 @@ public abstract class AbstractGrayInterceptor<Req, Resp> {
         return grayFlow(graySwitchVo, executor, url.replaceFirst(graySwitchVo.getOldDownStream(), graySwitchVo.getNewDownStream()));
     }
 
-    private Resp grayFlow(GraySwitchVo graySwitchVo, GrayExecutor<Req, Resp> executor, String url) throws Throwable {
+    private Resp grayFlow(GraySwitchVo graySwitchVo, GrayExecutor<Req, Resp> executor, String url) throws IOException {
         GraySwitchVo.GrayWeight grayWeight = graySwitchVo.getGrayWeight();
         try {
             if (grayWeight.hit()) {

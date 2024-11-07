@@ -20,20 +20,8 @@
           <scope>import</scope>
           <type>pom</type>
         </dependency>
-        <dependency>
-          <groupId>io.github.persistencelkg</groupId>
-          <artifactId>LongPoll-Arhat</artifactId>
-          <version>1.0.1-SNAPSHOT</version>
-        </dependency>
       </dependencies>
   </dependencyManagement>
-
-  <dependencies>
-    <dependency>
-      <groupId>io.github.persistencelkg</groupId>
-      <artifactId>LongPoll-Arhat</artifactId>
-    </dependency>
-  </dependencies>
 
 
 </project>

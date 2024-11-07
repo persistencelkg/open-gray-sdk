@@ -1,5 +1,7 @@
 package com.gray.lkg.core;
 
+import java.io.IOException;
+
 /**
  * 灰度干预执行器
  * Description:
@@ -8,12 +10,12 @@ package com.gray.lkg.core;
  */
 public interface GrayExecutor<Req, Resp> {
 
-    Resp execute() throws Throwable;
+    Resp execute() throws IOException;
 
-    Resp execute(Req req) throws Throwable;
+    Resp execute(Req req) throws IOException;
 
     /**
      * 新接口迁移场景
      */
-    Resp execute(String url) throws Throwable;
+    Resp execute(String url) throws IOException;
 }
