@@ -12,13 +12,61 @@
 
     <name>open-gray-client</name>
 
+    <properties>
+        <open-feign.version>2.2.10.RELEASE</open-feign.version>
+        <feign-core.version>10.4.0</feign-core.version>
+        <kg-eighteen-arhat.version>1.0.1-SNAPSHOT</kg-eighteen-arhat.version>
+    </properties>
+
 
     <dependencies>
         <dependency>
+            <groupId>io.github.persistencelkg</groupId>
+            <artifactId>LongPoll-Arhat</artifactId>
+            <version>${kg-eighteen-arhat.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.persistencelkg</groupId>
+            <artifactId>WebCommon-Arhat</artifactId>
+            <version>${kg-eighteen-arhat.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!--autoconfigure-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+        </dependency>
+
+        <!-- open fegin -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+            <version>${open-feign.version}</version>
+            <scope>provided</scope>
             <optional>true</optional>
         </dependency>
+
+        <dependency>
+            <groupId>io.github.openfeign</groupId>
+            <artifactId>feign-core</artifactId>
+            <version>${feign-core.version}</version>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+        <!-- open fegin end -->
+
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-jexl3</artifactId>
@@ -29,34 +77,7 @@
             <artifactId>aviator</artifactId>
             <version>5.3.1</version>
         </dependency>
-        <dependency>
-            <groupId>io.github.openfeign</groupId>
-            <artifactId>feign-core</artifactId>
-            <version>10.4.0</version>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-openfeign-core</artifactId>
-            <version>2.2.9.RELEASE</version>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-commons</artifactId>
-            <version>2.2.9.RELEASE</version>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.retry</groupId>
-            <artifactId>spring-retry</artifactId>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <version>1.18.26</version>
-        </dependency>
+
     </dependencies>
     <build>
         <plugins>
