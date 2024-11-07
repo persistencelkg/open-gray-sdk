@@ -1,21 +1,21 @@
-package com.gray.lkg.model;
+package com.kg.server.bo;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * @description: 灰度的开关规则数据来自gray-server
- * @author: 李开广
- * @date: 2023/7/17 5:25 PM
+ * Description:
+ * Author: 李开广
+ * Date: 2024/11/6 8:06 PM
  */
 @Data
 @JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy.class)
 public class GraySwitchVo {
-
 
     private String switchName;
 
@@ -79,6 +79,7 @@ public class GraySwitchVo {
 
     @Data
     @JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy.class)
+    @AllArgsConstructor
     public static class GrayWeight {
         /**
          * 多少流量走老逻辑
@@ -104,6 +105,7 @@ public class GraySwitchVo {
 
     @Data
     @JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy.class)
+    @AllArgsConstructor
     public static class GrayTime {
 
         /**
@@ -116,4 +118,17 @@ public class GraySwitchVo {
          */
         private Integer grayPeriod;
     }
+
+
+    @Data
+    @AllArgsConstructor
+    public static class GrayRuleExpression {
+
+        private String params;
+        private String operational;
+        private String value;
+        private String relational;
+        private Integer flag;
+    }
+
 }

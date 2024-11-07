@@ -3,6 +3,7 @@ package com.gray.lkg.core;
 import com.gray.lkg.model.GrayEvent;
 import com.gray.lkg.model.GraySwitchVo;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.lkg.simple.ObjectUtil;
 
@@ -26,18 +27,26 @@ public class GrayDispatchManager {
     private static final List<Consumer<GrayEvent>> list = new ArrayList<>();
 
     @Getter
+    @Setter
     private static GraySwitchService graySwitchService;
 
+    public static boolean containsSwitch(String switchName) {
+        if (Objects.nonNull(graySwitchService)) {
+            return Objects.nonNull(graySwitchService.getBySwitchName(switchName));
+        }
+        return false;
+    }
 
     private static void addGrayEvent(String key, Consumer<GrayEvent> consumer) {
         EVENT_CONSUME_MAP.computeIfAbsent(key, ref -> new ArrayList<>()).add(consumer);
     }
 
     public static void registerAndTriggerGrayEvent(String key, Consumer<GraySwitchVo> consumer) {
-        if (Objects.isNull(graySwitchService)) {
-            return;
+        GraySwitchVo switchVo = null;
+        if (Objects.nonNull(graySwitchService)) {
+            switchVo = graySwitchService.getBySwitchName(key);
         }
-        GraySwitchVo switchVo = graySwitchService.getBySwitchName(key);
+
         // register
         Consumer<GrayEvent> grayEventConsumer = grayEvent -> consumer.accept(grayEvent.getNewSwitch());
         addGrayEvent(key, grayEventConsumer);
