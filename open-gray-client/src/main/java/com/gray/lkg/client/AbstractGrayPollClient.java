@@ -10,6 +10,7 @@ import io.github.persistence.LongPoolConfig;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.lkg.core.DynamicConfigManger;
+import org.lkg.enums.ResponseBodyEnum;
 import org.lkg.enums.TrueFalseEnum;
 import org.lkg.request.*;
 import org.lkg.simple.JacksonUtil;
@@ -75,15 +76,18 @@ public abstract class AbstractGrayPollClient extends BasicLongPollClient impleme
             return;
         }
         // Not modify
-        if (response.getStatusCode() >= 300) {
+        if (ObjectUtil.isEmpty(response.getResult())  || response.getStatusCode() >= 300) {
+            if (log.isDebugEnabled()) {
+                log.debug(":{} current config not modify", ServerInfo.name());
+            }
             return;
         }
         if (response.is2XXSuccess()) {
-            ListResp<GraySwitchVo, Integer> entity = response.toEntity(new TypeReference<ListResp<GraySwitchVo, Integer>>() {
-            });
+            GenericCommonResp entity = JacksonUtil.deserialize(response.getResult(), ResponseBodyEnum.DATA_CODE_MESSAGE);
             if (Objects.nonNull(entity) && Objects.nonNull(entity.getData())) {
-                handleNewStrategyList(entity.getData());
+                handleNewStrategyList(entity.unSafeGetList(GraySwitchVo.class));
             } else {
+                // 下线
                 handleNewStrategyList(null);
             }
         }
@@ -95,11 +99,10 @@ public abstract class AbstractGrayPollClient extends BasicLongPollClient impleme
         InternalResponse response = SimpleRequestUtil.request(InternalRequest.createPostRequest(longPoolConfig.getPollUrl(), InternalRequest.BodyEnum.RAW, params));
         if (response.is2XXSuccess()) {
             // 处理数据
-            ListResp<GraySwitchVo, Integer> entity = response.toEntity(new TypeReference< ListResp<GraySwitchVo, Integer>>() {
-            });
+            GenericCommonResp entity = JacksonUtil.deserialize(response.getResult(), ResponseBodyEnum.DATA_CODE_MESSAGE);
             if (Objects.nonNull(entity) && Objects.nonNull(entity.getData())) {
                 // 主动拉取不需要版本控制， 因为从服务端拉取的肯定是最新的
-                handleNewStrategyListWithOutVersion(entity.getData());
+                handleNewStrategyListWithOutVersion(entity.unSafeGetList(GraySwitchVo.class));
             }
             log.info("success load gray strategy:{}", entity);
         } else {
@@ -164,10 +167,7 @@ public abstract class AbstractGrayPollClient extends BasicLongPollClient impleme
     public static void main(String[] args) {
         // at [Source: (String)""; line: 1, column: 9] (through reference chain: org.lkg.request.CommonIntResp["data"])
         String str = "{\"data\":[{\"switch_name\":\"hit-gray\",\"server_name\":null,\"version\":null,\"gray_type\":0,\"instance_list\":[\"open-gray\"],\"choose_all\":null,\"old_down_stream\":null,\"old_uri\":null,\"new_down_stream\":null,\"new_uri\":null,\"gray_condition\":\"(1==1)\",\"origin_condition_list\":[{\"params\":\"1\",\"operational\":\"==\",\"value\":\"1\",\"relational\":\"\",\"flag\":1}],\"language_type\":null,\"gray_weight\":null,\"gray_count\":{\"gray_count\":10,\"gray_period\":60},\"status\":1,\"control_type\":0}],\"code\":200,\"message\":null}";
-        ListResp<GraySwitchVo, Integer> graySwitchResponseCommonIntResp = JacksonUtil.readObj(str, new TypeReference<ListResp<GraySwitchVo, Integer>>() {
-        });
-        List<GraySwitchVo> data = graySwitchResponseCommonIntResp.getData();
-        System.out.println(data);
+        System.out.println(JacksonUtil.deserialize(str, ResponseBodyEnum.DATA_CODE_MESSAGE).unSafeGetList(GraySwitchVo.class));
 
         HashMap<Object, Object> objectObjectHashMap = new HashMap<>();
         System.out.println(new HashMap<>(objectObjectHashMap));
