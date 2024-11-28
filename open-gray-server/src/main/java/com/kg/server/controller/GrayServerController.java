@@ -47,7 +47,7 @@ public class GrayServerController {
     @PostMapping("/long-poll")
     public DeferredResult<DefaultResp> longPool(@RequestBody @Valid GrayLongPollRequest grayLongPollRequest) {
         DeferredResult<DefaultResp> defaultRespDeferredResult = new DeferredResult<>(
-                DynamicConfigManger.getLong("gray-server.delay.timeout", TimeUnit.MINUTES.toMillis(1)),
+                DynamicConfigManger.getLong("gray-server.delay.timeout", 59500L),
                 NOT_MODIFIED_RESPONSE);
         try {
             DefaultResp defaultResp = grayLongPollService.grayConfigChangeAware(grayLongPollRequest);

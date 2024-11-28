@@ -29,6 +29,9 @@ public class GrayLongPollService {
 
     private static final ConcurrentHashMap<String, Map<String, GraySwitchVo>> CACHE = new ConcurrentHashMap<>();
 
+    /**
+     * 一个服务多个开关 共用一个长连接，因此会出现一个改变其余都同步的情况
+     */
     private static final SetMultimap<String, DeferredResult<DefaultResp>> SERVER_GRAY_CONFIG_CHANGE_RESULT = Multimaps.synchronizedSetMultimap(HashMultimap.create());
 
 
