@@ -20,9 +20,16 @@
 
 
     <dependencies>
+
+
         <dependency>
             <groupId>io.github.persistencelkg</groupId>
             <artifactId>LongPoll-Arhat</artifactId>
+            <version>${kg-eighteen-arhat.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.persistencelkg</groupId>
+            <artifactId>ApolloDynamicConfig-Arhat</artifactId>
             <version>${kg-eighteen-arhat.version}</version>
         </dependency>
         <dependency>
