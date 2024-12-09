@@ -85,7 +85,7 @@ public class GrayLongPollService {
         graySwitchVo.setGrayCount(new GraySwitchVo.GrayTime((int) (Math.random() * 3), 10));
         map.put(graySwitchVo.getSwitchName(), graySwitchVo);
         CACHE.put("open-gray-server", map);
-        log.info(">>>>> change mock schedule");
+        log.info(">>>>> change mock schedule: {}", map);
         // dispatch
         Map<String, GraySwitchVo> stringGraySwitchVoMap = CACHE.get("open-gray-server");
         Collection<GraySwitchVo> values = stringGraySwitchVoMap.values();
