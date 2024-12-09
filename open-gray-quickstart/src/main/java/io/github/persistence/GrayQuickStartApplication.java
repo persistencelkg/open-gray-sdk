@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Import;
  * Date: 2024/11/6 5:20 PM
  */
 @SpringBootApplication
-//@Import(value = {DynamicConfigAutoConfiguration.class, ApolloConfigBeanFactoryPostProcessorInitializer.class})
+//@Import(ApolloConfigBeanFactoryPostProcessorInitializer.class)
 public class GrayQuickStartApplication {
 
     public static void main(String[] args) {
