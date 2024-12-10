@@ -1,19 +1,23 @@
 package com.kg.server.service;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
+import com.kg.server.bo.ChangeConfigBo;
 import com.kg.server.vo.GrayLongPollRequest;
 import com.kg.server.vo.GraySwitchVo;
 import com.kg.server.controller.GrayServerController;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.MultiMap;
-import org.lkg.request.DefaultResp;
+import org.lkg.request.CommonIntResp;
+import org.lkg.request.CommonResp;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.util.ObjectUtils;
 import org.springframework.web.context.request.async.DeferredResult;
 
+import javax.annotation.PostConstruct;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -24,74 +28,86 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Service
 @Slf4j
-@EnableScheduling // temp mock
+@EnableScheduling // todo temp mock
 public class GrayLongPollService {
 
-    private static final ConcurrentHashMap<String, Map<String, GraySwitchVo>> CACHE = new ConcurrentHashMap<>();
+    // 持续保存的服务的版本信息 + 规则列表
+    private static final ConcurrentHashMap<String, ChangeConfigBo> CACHE = new ConcurrentHashMap<>();
 
     /**
      * 一个服务多个开关 共用一个长连接，因此会出现一个改变其余都同步的情况
      */
-    private static final SetMultimap<String, DeferredResult<DefaultResp>> SERVER_GRAY_CONFIG_CHANGE_RESULT = Multimaps.synchronizedSetMultimap(HashMultimap.create());
+    private static final SetMultimap<String, DeferredResult<CommonIntResp<ChangeConfigBo>>> SERVER_GRAY_CONFIG_CHANGE_RESULT = Multimaps.synchronizedSetMultimap(HashMultimap.create());
 
 
-    public static DeferredResult<DefaultResp> registerAndReturn(String serverName, DeferredResult<DefaultResp> result) {
+    public static void register(String serverName, DeferredResult<CommonIntResp<ChangeConfigBo>> result) {
         SERVER_GRAY_CONFIG_CHANGE_RESULT.put(serverName, result);
-        return result;
     }
 
-    public static void deRegister(String serverName, DeferredResult<DefaultResp> result) {
+    public static void deRegister(String serverName, DeferredResult<CommonIntResp<ChangeConfigBo>> result) {
         SERVER_GRAY_CONFIG_CHANGE_RESULT.remove(serverName, result);
     }
 
-    public DefaultResp grayConfigChangeAware(GrayLongPollRequest request) {
+    public boolean checkServer(GrayLongPollRequest request) {
+        if (!CACHE.containsKey(request.getServerName())) {
+            return false;
+        }
+        if (Objects.nonNull(request.getGrayVersion()) && CACHE.get(request.getServerName()).getGrayVersion() > request.getGrayVersion()) {
+            return true;
+        }
+        return false;
+    }
 
-        Object result = null;
+    public CommonIntResp<ChangeConfigBo> grayConfigChangeAware(GrayLongPollRequest request) {
+
+        ChangeConfigBo result = null;
         try {
             // 校验版本
-            checkVersion(request.getGrayVersion());
+            checkVersion(request.getSdkVersion());
             // 检查本地缓存是否发生变更
-            result = checkIfModifyConfig(request.getServerName(), request.getGrayVersionList());
+            result = CACHE.get(request.getServerName());
         } catch (Exception e) {
             log.warn("servername:{} check gray config change err:{}", request.getServerName(), e.getMessage(), e);
         }
-        return DefaultResp.success(result);
+        return CommonResp.successInt(result);
     }
 
-    private Object checkIfModifyConfig(String serverName, List<GrayLongPollRequest.ServerSwitchVersion> switchVersionList) {
-        Map<String, GraySwitchVo> stringGraySwitchVoMap = CACHE.get(serverName);
-        if (Objects.isNull(stringGraySwitchVoMap)) {
-            return null;
-        }
-        Set<String> serverGrayConfigKeySet = stringGraySwitchVoMap.keySet();
-        for (GrayLongPollRequest.ServerSwitchVersion serverSwitchVersion : switchVersionList) {
-            if (serverGrayConfigKeySet.contains(serverSwitchVersion.getGraySwitchName())
-                    && !Objects.equals(stringGraySwitchVoMap.get(serverSwitchVersion.getGraySwitchName()).getVersion(), serverSwitchVersion.getGrayVersion())) {
-                return CACHE.values();
-            }
-        }
-        return null;
-    }
 
     private void checkVersion(String grayVersion) {
         // throw or return null
     }
+    String serverName = "open-gray";
 
-
-    @Scheduled(cron = "0/3 * * * * ?")
-    public void mockChange() {
+    @PostConstruct
+    public void init() {
         GraySwitchVo graySwitchVo = GrayServerController.mockV1();
-        HashMap<String, GraySwitchVo> map = new HashMap<>();
         graySwitchVo.setGrayCount(new GraySwitchVo.GrayTime((int) (Math.random() * 3), 10));
-        map.put(graySwitchVo.getSwitchName(), graySwitchVo);
-        CACHE.put("open-gray-server", map);
-        log.info(">>>>> change mock schedule: {}", map);
+        CACHE.put(serverName, new ChangeConfigBo(graySwitchVo.getSwitchName(), 100, Lists.newArrayList(graySwitchVo)));
+
+    }
+
+    @Scheduled(cron = "0/5 * * * * ?")
+    public void mockChange() {
+
         // dispatch
-        Map<String, GraySwitchVo> stringGraySwitchVoMap = CACHE.get("open-gray-server");
-        Collection<GraySwitchVo> values = stringGraySwitchVoMap.values();
-        Set<DeferredResult<DefaultResp>> deferredResults = SERVER_GRAY_CONFIG_CHANGE_RESULT.get("open-gray-server");
-        for (DeferredResult<DefaultResp> deferredResult : deferredResults) {
-            deferredResult.setResult(DefaultResp.success(values));
+        ChangeConfigBo changeConfigBo = CACHE.get(serverName);
+        Set<DeferredResult<CommonIntResp<ChangeConfigBo>>> deferredResults = SERVER_GRAY_CONFIG_CHANGE_RESULT.get(serverName);
+        for (DeferredResult<CommonIntResp<ChangeConfigBo>> deferredResult : deferredResults) {
+            if (Objects.isNull(changeConfigBo)) {
+                deferredResult.setResult(CommonIntResp.successInt(new ChangeConfigBo()));
+            } else {
+                deferredResult.setResult(CommonIntResp.successInt(changeConfigBo));
+            }
+            log.info(">>>>> change mock schedule trigger");
+
         }
+    }
+
+    public void refresh() {
+        GraySwitchVo graySwitchVo = GrayServerController.mockV1();
+        graySwitchVo.setGrayCount(new GraySwitchVo.GrayTime((int) (Math.random() * 3), 10));
+        long version = (long) (Math.random() * 1000L);
+        CACHE.put("open-gray", new ChangeConfigBo(graySwitchVo.getSwitchName(), version, Lists.newArrayList(graySwitchVo)));
+
     }
 }

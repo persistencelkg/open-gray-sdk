@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!--    公共配置，必须-->
+    <include resource="self-logback-spring.xml"/>
+
+
+    <springProfile name="!local">
+        <root level="INFO">
+            <appender-ref ref="STDOUT"/>
+        </root>
+    </springProfile>
+</configuration>
