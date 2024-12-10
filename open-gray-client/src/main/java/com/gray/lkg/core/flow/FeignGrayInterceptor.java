@@ -2,6 +2,7 @@ package com.gray.lkg.core.flow;
 
 import com.gray.lkg.core.AbstractGrayInterceptor;
 import com.gray.lkg.core.GrayExecutor;
+import com.gray.lkg.core.GraySwitchService;
 import feign.Request;
 import feign.Response;
 import lombok.AllArgsConstructor;
@@ -19,11 +20,20 @@ import java.io.IOException;
 public class FeignGrayInterceptor extends AbstractGrayInterceptor<Request, Response> implements SelfFeignInterceptor {
 
 
+    public FeignGrayInterceptor(GraySwitchService graySwitchService) {
+        super(graySwitchService);
+    }
+
     @Override
     public Response interceptor(FeignChain feignChain) throws IOException {
         Request request = feignChain.request();
         FeignMetaDataContext.FeignMetaData feignMetaContext = FeignMetaDataContext.getFeignMetaContext(request.url());
         return super.flowIntercept(new FeignGrayExecutor(feignChain), request.url(), feignMetaContext.getUri());
+    }
+
+    @Override
+    public boolean interceptResult() {
+        return true;
     }
 
     @AllArgsConstructor
@@ -45,8 +55,8 @@ public class FeignGrayInterceptor extends AbstractGrayInterceptor<Request, Respo
         @Override
         public Response execute(String url) throws IOException {
             Request request = feignChain.request();
-            Request newRequest = Request.create(request.httpMethod(), url, request.headers(), request.requestBody());
-            return feignChain.process(newRequest);
+            Request newRequest = Request.create(request.httpMethod(), url, request.headers(), request.body(), request.charset());
+            return execute(newRequest);
         }
     }
 

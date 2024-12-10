@@ -39,6 +39,7 @@ public class GrayServerController {
     public CommonIntResp<List<GraySwitchVo>> ruleList() {
         List<GraySwitchVo> list = new ArrayList<>();
         list.add(mockV1());
+        list.add(mockV2());
         return CommonIntResp.successInt(list);
     }
 
@@ -109,4 +110,24 @@ public class GrayServerController {
         return graySwitchVo;
     }
 
+
+    public static GraySwitchVo mockV2() {
+        // 流量灰度
+        GraySwitchVo graySwitchVo = new GraySwitchVo();
+        graySwitchVo.setSwitchName("flow-gray-test");
+        graySwitchVo.setServerName("open-gray");
+        graySwitchVo.setGrayCondition("(1==1)");
+        graySwitchVo.setGrayType(1);
+        graySwitchVo.setOldDownStream("open-gray-server");
+        graySwitchVo.setOldUri("/feign/old-uri");
+        graySwitchVo.setNewDownStream("open-gray-server");
+        graySwitchVo.setNewUri("/feign/new-uri");
+        graySwitchVo.setGrayWeight(new GraySwitchVo.GrayWeight(10, 90));
+        graySwitchVo.setInstanceList(Lists.newArrayList("open-gray", "open-gray-0"));
+//        graySwitchVo.setGrayCount(new GraySwitchVo.GrayTime(10, 60));
+        graySwitchVo.setControlType(0);
+        graySwitchVo.setStatus(1);
+//        graySwitchVo.setOriginConditionList(Lists.newArrayList(new GraySwitchVo.GrayRuleExpression("1", "==", "1", "", 1)));
+        return graySwitchVo;
+    }
 }

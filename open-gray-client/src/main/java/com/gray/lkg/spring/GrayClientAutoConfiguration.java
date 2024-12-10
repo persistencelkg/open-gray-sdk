@@ -78,11 +78,11 @@ public class GrayClientAutoConfiguration implements SmartInitializingSingleton {
 
     @Configuration
     @ConditionalOnClass(value = {Feign.class, Request.class})
-    static class FeignFlowGrayAutoConfiguration{
+    static class FeignFlowGrayAutoConfiguration {
 
         @Bean
-        public FeignGrayInterceptor feignGrayInterceptor() {
-            return new FeignGrayInterceptor();
+        public FeignGrayInterceptor feignGrayInterceptor(GraySwitchService graySwitchService) {
+            return new FeignGrayInterceptor(graySwitchService);
         }
     }
 
@@ -92,22 +92,24 @@ public class GrayClientAutoConfiguration implements SmartInitializingSingleton {
     static class RestTemplateFlowGrayAutoConfiguration {
 
         @Bean
-        public RestTemplateGrayInterceptorSmartInitializingSingleton restTemplateGrayInterceptorSmartInitializingSingleton(ObjectProvider<RestTemplate> restTemplateObjectProvider) {
-            return new RestTemplateGrayInterceptorSmartInitializingSingleton(restTemplateObjectProvider);
+        public RestTemplateGrayInterceptorSmartInitializingSingleton restTemplateGrayInterceptorSmartInitializingSingleton(ObjectProvider<RestTemplate> restTemplateObjectProvider, GraySwitchService graySwitchService) {
+            return new RestTemplateGrayInterceptorSmartInitializingSingleton(restTemplateObjectProvider, graySwitchService);
         }
 
         static class RestTemplateGrayInterceptorSmartInitializingSingleton implements SmartInitializingSingleton {
             private final Iterator<RestTemplate> iterator;
+            private final GraySwitchService graySwitchService;
 
-            public RestTemplateGrayInterceptorSmartInitializingSingleton(ObjectProvider<RestTemplate> restTemplateObjectProvider) {
+            public RestTemplateGrayInterceptorSmartInitializingSingleton(ObjectProvider<RestTemplate> restTemplateObjectProvider, GraySwitchService graySwitchService) {
                 this.iterator = restTemplateObjectProvider.stream().iterator();
+                this.graySwitchService = graySwitchService;
             }
 
             @Override
             public void afterSingletonsInstantiated() {
                 iterator.forEachRemaining(ref -> {
                     List<ClientHttpRequestInterceptor> interceptors = ref.getInterceptors();
-                    interceptors.add(0, new RestTemplateGrayInterceptor());
+                    interceptors.add(0, new RestTemplateGrayInterceptor(graySwitchService));
                 });
             }
         }
