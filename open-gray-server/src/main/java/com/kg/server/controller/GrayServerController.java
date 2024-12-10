@@ -55,11 +55,23 @@ public class GrayServerController {
                 DynamicConfigManger.getLong("gray-server.delay.timeout", 29500L),
                 NOT_MODIFIED_RESPONSE);
         try {
-            CommonIntResp<ChangeConfigBo> defaultResp = grayLongPollService.grayConfigChangeAware(grayLongPollRequest);
-            defaultRespDeferredResult.setResult(defaultResp);
-             if (Objects.isNull(grayLongPollRequest.getGrayVersion()) || defaultResp.getData().getGrayVersion() > grayLongPollRequest.getGrayVersion()) {
-                return defaultRespDeferredResult;
+            // 先判断状态，再去考虑获取数据
+            // 1.服务不存在： 无论是真的不存在， 还是其开关都下线了  都交给异步通知去处理，而不是这里立刻返回，这样会持续建立无用链接
+            if (grayLongPollService.checkServer(grayLongPollRequest)) {
+                CommonIntResp<ChangeConfigBo> defaultResp = grayLongPollService.grayConfigChangeAware(grayLongPollRequest);
+                if (Objects.nonNull(grayLongPollRequest.getGrayVersion())) {
+                    defaultRespDeferredResult.setResult(defaultResp);
+                    return defaultRespDeferredResult;
+                } else if (Objects.nonNull(defaultResp.getData())) {
+                    defaultRespDeferredResult.setResult(defaultResp);
+                    return defaultRespDeferredResult;
+                } else {
+                    // 初始化时，没数据，交给异步通知
+                }
+            } else {
+                // 服务开关下线 考虑后面请求都需要
             }
+
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
@@ -79,6 +91,7 @@ public class GrayServerController {
             GrayLongPollService.deRegister(grayLongPollRequest.getServerName(), defaultRespDeferredResult);
         });
         GrayLongPollService.register(grayLongPollRequest.getServerName(), defaultRespDeferredResult);
+        log.info("register server:{}", grayLongPollRequest.getServerName());
     }
 
 

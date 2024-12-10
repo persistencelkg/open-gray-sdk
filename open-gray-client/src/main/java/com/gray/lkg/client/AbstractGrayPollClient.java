@@ -1,6 +1,5 @@
 package com.gray.lkg.client;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.gray.lkg.config.GrayConst;
 import com.gray.lkg.core.GrayDispatchManager;
 import com.gray.lkg.core.GraySwitchService;
@@ -17,7 +16,6 @@ import org.lkg.simple.JacksonUtil;
 import org.lkg.simple.ObjectUtil;
 import org.lkg.simple.ServerInfo;
 
-import javax.validation.constraints.Max;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -94,14 +92,16 @@ public abstract class AbstractGrayPollClient extends BasicLongPollClient impleme
                     handleNewStrategyList(null);
                 } else {
                     // 版本比较
-                    version = Math.max(version, longPollData.getGrayVersion());
+                    long checkVersion = Math.max(version, longPollData.getGrayVersion());
                     params.put("gray_version", version);
-                    if (version == longPollData.getGrayVersion()) {
+                    params.put("grayVersion", version);
+                    if (version >= checkVersion) {
                         log.debug(":{} current config version not modify", ServerInfo.name());
                         return;
                     }
-                    log.info("long poll find config rule is change:{}", longPollData.getRuleList());
-                    handleNewStrategyList(longPollData.getRuleList());
+                    log.info("long poll find config rule is change, old version:{} new version:{}:{}", version, checkVersion, longPollData.getGraySwitchVoList());
+                    version = checkVersion;
+                    handleNewStrategyList(longPollData.getGraySwitchVoList());
                 }
             } else {
                 // 下线

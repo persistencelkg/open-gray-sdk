@@ -39,9 +39,8 @@ import static com.gray.lkg.config.GrayConst.GRAY_LONG_POLL_CONFIG_PREFIX;
 @Configuration
 @OnGrayEnable
 @Slf4j
-public class GrayClientAutoConfiguration {
+public class GrayClientAutoConfiguration implements SmartInitializingSingleton {
 
-    @PostConstruct
     public void init() {
         GraySwitchService graySwitchService = GrayDispatchManager.getGraySwitchService();
         if (Objects.isNull(graySwitchService)) {
@@ -69,6 +68,11 @@ public class GrayClientAutoConfiguration {
         DefaultGraySwitchClient defaultGraySwitchClient = new DefaultGraySwitchClient(grayLongPoolConfig);
         GrayDispatchManager.setGraySwitchService(defaultGraySwitchClient);
         return defaultGraySwitchClient;
+    }
+
+    @Override
+    public void afterSingletonsInstantiated() {
+        this.init();
     }
 
 

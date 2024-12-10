@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
 import org.springframework.web.context.request.async.DeferredResult;
 
+import javax.annotation.PostConstruct;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -47,6 +48,16 @@ public class GrayLongPollService {
         SERVER_GRAY_CONFIG_CHANGE_RESULT.remove(serverName, result);
     }
 
+    public boolean checkServer(GrayLongPollRequest request) {
+        if (!CACHE.containsKey(request.getServerName())) {
+            return false;
+        }
+        if (Objects.nonNull(request.getGrayVersion()) && CACHE.get(request.getServerName()).getGrayVersion() > request.getGrayVersion()) {
+            return true;
+        }
+        return false;
+    }
+
     public CommonIntResp<ChangeConfigBo> grayConfigChangeAware(GrayLongPollRequest request) {
 
         ChangeConfigBo result = null;
@@ -54,39 +65,29 @@ public class GrayLongPollService {
             // 校验版本
             checkVersion(request.getSdkVersion());
             // 检查本地缓存是否发生变更
-            result = checkIfModifyConfig(request.getServerName(), request.getGrayVersion());
+            result = CACHE.get(request.getServerName());
         } catch (Exception e) {
             log.warn("servername:{} check gray config change err:{}", request.getServerName(), e.getMessage(), e);
         }
         return CommonResp.successInt(result);
     }
 
-    private ChangeConfigBo checkIfModifyConfig(String serverName, Long oldVersion) {
-        ChangeConfigBo changeConfigBo = CACHE.get(serverName);
-        if (Objects.isNull(changeConfigBo)) {
-            return null;
-        }
-        List<GraySwitchVo> graySwitchVoList = changeConfigBo.getGraySwitchVoList();
-        if (ObjectUtils.isEmpty(graySwitchVoList)) {
-            return null;
-        }
-        if (Objects.isNull(oldVersion) || changeConfigBo.getGrayVersion() >= oldVersion) {
-            return changeConfigBo;
-        }
-        return null;
-    }
 
     private void checkVersion(String grayVersion) {
         // throw or return null
     }
+    String serverName = "open-gray";
 
+    @PostConstruct
+    public void init() {
+        GraySwitchVo graySwitchVo = GrayServerController.mockV1();
+        graySwitchVo.setGrayCount(new GraySwitchVo.GrayTime((int) (Math.random() * 3), 10));
+        CACHE.put(serverName, new ChangeConfigBo(graySwitchVo.getSwitchName(), 100, Lists.newArrayList(graySwitchVo)));
+
+    }
 
     @Scheduled(cron = "0/5 * * * * ?")
     public void mockChange() {
-        GraySwitchVo graySwitchVo = GrayServerController.mockV1();
-        String serverName = "open-gray";
-        graySwitchVo.setGrayCount(new GraySwitchVo.GrayTime((int) (Math.random() * 3), 10));
-        CACHE.put(serverName, new ChangeConfigBo(graySwitchVo.getSwitchName(), 100, Lists.newArrayList(graySwitchVo)));
 
         // dispatch
         ChangeConfigBo changeConfigBo = CACHE.get(serverName);
