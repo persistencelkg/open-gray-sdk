@@ -17,6 +17,7 @@ import org.lkg.simple.JacksonUtil;
 import org.lkg.simple.ObjectUtil;
 import org.lkg.simple.ServerInfo;
 
+import javax.validation.constraints.Max;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -31,6 +32,7 @@ public abstract class AbstractGrayPollClient extends BasicLongPollClient impleme
     private final Map<String, Object> params;
 
     private final Map<String, GraySwitchVo> LOCAL_CACHE = new HashMap<>();
+    private long version;
 
     protected AbstractGrayPollClient(LongPoolConfig longPoolConfig) {
 
@@ -38,7 +40,7 @@ public abstract class AbstractGrayPollClient extends BasicLongPollClient impleme
                 DynamicConfigManger.getBoolean(GrayConst.GRAY_LONG_POLL_ENABLE_KEY, true),
                 longPoolConfig);
         params = new HashMap<>();
-        params.put("gray_version", "v1.0");
+        params.put("sdk_version", "v1.0");
         params.put("server_name", ServerInfo.name());
 
         DynamicConfigManger.initAndRegistChangeEvent(GrayConst.GRAY_LONG_POLL_INTERVAL_KEY, DynamicConfigManger::getInt, (ref) -> {
@@ -72,6 +74,7 @@ public abstract class AbstractGrayPollClient extends BasicLongPollClient impleme
         // 对于服务端推送结果 需要检查是否not modify、版本比较
         InternalResponse response = SimpleRequestUtil.request(InternalRequest.createPostRequest(longPoolConfig.getLongLinkUrl(), InternalRequest.BodyEnum.RAW, params));
         if (response.is4XXFail()) {
+            log.warn("gray server request fail, fallback rule list");
             handleNewStrategyList(null);
             return;
         }
@@ -85,7 +88,21 @@ public abstract class AbstractGrayPollClient extends BasicLongPollClient impleme
         if (response.is2XXSuccess()) {
             GenericCommonResp entity = JacksonUtil.deserialize(response.getResult(), ResponseBodyEnum.DATA_CODE_MESSAGE);
             if (Objects.nonNull(entity) && Objects.nonNull(entity.getData())) {
-                handleNewStrategyList(entity.unSafeGetList(GraySwitchVo.class));
+                LongPollData longPollData = GenericCommonResp.safeGet(entity, LongPollData.class);
+                if (Objects.isNull(longPollData)) {
+                    // 下线
+                    handleNewStrategyList(null);
+                } else {
+                    // 版本比较
+                    version = Math.max(version, longPollData.getGrayVersion());
+                    params.put("gray_version", version);
+                    if (version == longPollData.getGrayVersion()) {
+                        log.debug(":{} current config version not modify", ServerInfo.name());
+                        return;
+                    }
+                    log.info("long poll find config rule is change:{}", longPollData.getRuleList());
+                    handleNewStrategyList(longPollData.getRuleList());
+                }
             } else {
                 // 下线
                 handleNewStrategyList(null);

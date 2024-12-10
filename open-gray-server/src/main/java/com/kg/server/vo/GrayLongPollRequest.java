@@ -4,6 +4,7 @@ import lombok.Data;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 import java.util.List;
 
 /**
@@ -20,11 +21,13 @@ public class GrayLongPollRequest {
     /**
      * 升级版本的校验，考虑到强升级版本的需要
      */
-    @NotBlank(message = "gray version can not empty")
-    private String grayVersion;
+//    @NotNull(message = "gray version can not empty")
+    private Long grayVersion;
+
+    private String sdkVersion;
 
 
-    @Valid
+//    @Valid
     private List<ServerSwitchVersion> grayVersionList;
 
 
@@ -34,6 +37,6 @@ public class GrayLongPollRequest {
         @NotBlank(message = "gray switch name can not empty")
         private String graySwitchName;
         @NotBlank(message = "switch version can not empty")
-        private Long grayVersion;
+        private Long switchVersion;
     }
 }
