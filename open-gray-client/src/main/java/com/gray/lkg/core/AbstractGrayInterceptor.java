@@ -24,9 +24,9 @@ public abstract class AbstractGrayInterceptor<Req, Resp> {
 //    private final Map<String, GrayClient> clientMap = new HashMap<>();
     private final GraySwitchService graySwitchService;
 
-    public AbstractGrayInterceptor() {
+    public AbstractGrayInterceptor(GraySwitchService graySwitchService) {
 //        GrayDispatchManager.addGrayEvent(this::onGrayEvent);
-        graySwitchService = GrayDispatchManager.getGraySwitchService();
+        this.graySwitchService = graySwitchService;
 //        if (Objects.nonNull(graySwitchService)) {
 //            List<GraySwitchVo> graySwitchVos = graySwitchService.listAllGraySwitch();
 //            Optional.ofNullable(graySwitchVos).ifPresent(ref -> ref.stream().map(GrayEvent::new).forEach(this::onGrayEvent));
@@ -51,9 +51,9 @@ public abstract class AbstractGrayInterceptor<Req, Resp> {
         if (Objects.isNull(graySwitchVo)) {
             return executor.execute();
         }
-        if (!GrayClient.containsSwitch(graySwitchVo.getSwitchName())) {
-            return executor.execute();
-        }
+//        if (!GrayClient.containsSwitch(graySwitchVo.getSwitchName())) {
+//            return executor.execute();
+//        }
         // 基于uri 优先级最高
         if (ObjectUtil.isNotEmpty(graySwitchVo.getNewDownStream()) && ObjectUtil.isNotEmpty(graySwitchVo.getNewUri())) {
             String newURl = StringEnum.HTTP_PREFIX + graySwitchVo.getNewDownStream() + graySwitchVo.getNewUri();

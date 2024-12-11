@@ -2,6 +2,7 @@ package com.gray.lkg.core.flow;
 
 import com.gray.lkg.core.AbstractGrayInterceptor;
 import com.gray.lkg.core.GrayExecutor;
+import com.gray.lkg.core.GraySwitchService;
 import lombok.AllArgsConstructor;
 import org.apache.http.*;
 import org.apache.http.client.HttpClient;
@@ -22,6 +23,10 @@ import java.net.URISyntaxException;
 public class ApacheHttpClientGrayInterceptor extends AbstractGrayInterceptor<HttpEntityEnclosingRequestBase, CloseableHttpResponse> implements HttpRequestInterceptor, HttpResponseInterceptor {
 
     private HttpClient client;
+
+    public ApacheHttpClientGrayInterceptor(GraySwitchService graySwitchService) {
+        super(graySwitchService);
+    }
 
     @Override
     public void process(HttpRequest request, HttpContext context) throws HttpException, IOException {

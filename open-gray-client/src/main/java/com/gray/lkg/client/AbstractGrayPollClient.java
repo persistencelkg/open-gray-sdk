@@ -165,7 +165,7 @@ public abstract class AbstractGrayPollClient extends BasicLongPollClient impleme
 
     private boolean matchCondition(GraySwitchVo graySwitchVo) {
         // 状态是否开启
-        if (Objects.equals(ControlEnum.ALL_OLD.getType(), graySwitchVo.getGrayType()) || TrueFalseEnum.isFalse(graySwitchVo.getStatus())) {
+        if (Objects.equals(ControlEnum.ALL_OLD.getType(), graySwitchVo.getControlType()) || TrueFalseEnum.isFalse(graySwitchVo.getStatus())) {
             return false;
         }
         // 全选默认匹配

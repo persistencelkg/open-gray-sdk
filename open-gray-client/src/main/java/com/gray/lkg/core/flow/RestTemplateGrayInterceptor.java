@@ -2,6 +2,7 @@ package com.gray.lkg.core.flow;
 
 import com.gray.lkg.core.AbstractGrayInterceptor;
 import com.gray.lkg.core.GrayExecutor;
+import com.gray.lkg.core.GraySwitchService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpRequest;
@@ -19,6 +20,10 @@ import java.net.URISyntaxException;
  * Date: 2024/11/6 10:18 AM
  */
 public class RestTemplateGrayInterceptor extends AbstractGrayInterceptor<HttpRequest, ClientHttpResponse> implements ClientHttpRequestInterceptor {
+
+    public RestTemplateGrayInterceptor(GraySwitchService graySwitchService) {
+        super(graySwitchService);
+    }
 
     @Override
     public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
