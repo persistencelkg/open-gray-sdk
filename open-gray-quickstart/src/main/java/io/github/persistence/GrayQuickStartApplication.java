@@ -1,6 +1,7 @@
 package io.github.persistence;
 
 import com.ctrip.framework.apollo.spring.annotation.EnableApolloConfig;
+import org.lkg.apollo.EnableDynamicApollo;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.openfeign.EnableFeignClients;
@@ -11,7 +12,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
  * Date: 2024/11/6 5:20 PM
  */
 @SpringBootApplication
-@EnableApolloConfig
+@EnableDynamicApollo
 @EnableFeignClients
 public class GrayQuickStartApplication {
 

@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.lkg.core.DynamicConfigManger;
 import org.lkg.request.CommonIntResp;
 import org.lkg.simple.DateTimeUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.async.DeferredResult;
@@ -43,9 +44,13 @@ public class GrayServerController {
         return CommonIntResp.successInt(list);
     }
 
+    private String test = DynamicConfigManger.getConfigValue("test-config");
+
     @GetMapping("/refesh")
     public boolean refresh() {
         grayLongPollService.refresh();
+
+        System.out.println(test);
         return true;
     }
 
