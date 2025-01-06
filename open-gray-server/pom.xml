@@ -24,11 +24,17 @@
             <groupId>io.github.persistencelkg</groupId>
             <artifactId>WebCommon-Arhat</artifactId>
             <version>1.0.1-SNAPSHOT</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.github.persistencelkg</groupId>
+                    <artifactId>Metric-Arhat</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
-            <groupId>io.github.persistencelkg</groupId>
-            <artifactId>ApolloDynamicConfig-Arhat</artifactId>
+            <groupId>io.github.persistence</groupId>
+            <artifactId>EighteenArhat-spring-boot-starter</artifactId>
             <version>${kg-eighteen-arhat.version}</version>
         </dependency>
     </dependencies>
