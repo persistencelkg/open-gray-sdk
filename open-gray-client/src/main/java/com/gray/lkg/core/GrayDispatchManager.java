@@ -41,6 +41,7 @@ public class GrayDispatchManager {
         EVENT_CONSUME_MAP.computeIfAbsent(key, ref -> new ArrayList<>()).add(consumer);
     }
 
+    // 注册并初始化事件
     public static void registerAndTriggerGrayEvent(String key, Consumer<GraySwitchVo> consumer) {
         GraySwitchVo switchVo = null;
         if (Objects.nonNull(graySwitchService)) {
