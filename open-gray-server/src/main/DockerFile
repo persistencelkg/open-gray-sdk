@@ -1,0 +1,18 @@
+# 基于openjdk-1.8-342版本
+FROM  openjdk:8u342-jdk-oraclelinux7
+# 定义全局
+ENV PROJECT_NAME open-gray-server
+
+# 第一层镜像，注意独立空间
+RUN mkdir -p /docker-deploy && cd docker-deploy
+
+WORKDIR docker-deploy
+
+# 执行maven install 产物是jar
+RUN ["maven", "install", "-Dmaven.test.skip=true"]
+
+# 拷贝的是当前上下文
+COPY target/$PROJECT_NAME*.jar docker-deploy/
+
+# 运行
+ENTRYPOINT [ "java", "-jar" , "$PROJECT_NAME-1.0-SNAPSHOT.jar" ]
