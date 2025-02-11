@@ -12,9 +12,9 @@ import org.lkg.core.DynamicConfigManger;
 import org.lkg.enums.ResponseBodyEnum;
 import org.lkg.enums.TrueFalseEnum;
 import org.lkg.request.*;
-import org.lkg.simple.JacksonUtil;
-import org.lkg.simple.ObjectUtil;
-import org.lkg.simple.ServerInfo;
+import org.lkg.utils.JacksonUtil;
+import org.lkg.utils.ObjectUtil;
+import org.lkg.utils.ServerInfo;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -176,7 +176,7 @@ public abstract class AbstractGrayPollClient extends BasicLongPollClient impleme
         List<String> instanceList = graySwitchVo.getInstanceList();
         if (ObjectUtil.isNotEmpty(instanceList)) {
             boolean bottomInLineMatch = instanceList.contains(ServerInfo.innerIp());
-            return instanceList.contains(System.getProperty(DynamicConfigManger.getConfigValue("local-instance-name", "INSTANCE_NAME"))) || bottomInLineMatch;
+            return instanceList.contains(GrayConst.getInstanceName()) || bottomInLineMatch;
         }
         return false;
     }
