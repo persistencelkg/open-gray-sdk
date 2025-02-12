@@ -1,6 +1,5 @@
 package com.gray.lkg.core.flow;
 
-import com.alibaba.nacos.api.annotation.NacosInjected;
 import com.alibaba.nacos.api.naming.NamingService;
 import com.alibaba.nacos.api.naming.pojo.Instance;
 import com.alibaba.nacos.client.config.impl.ConfigHttpClientManager;
@@ -12,15 +11,10 @@ import com.alibaba.nacos.common.http.param.MediaType;
 import com.alibaba.nacos.common.http.param.Query;
 import com.gray.lkg.model.GrayServerRegisterInfoResponse;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.checkerframework.checker.index.qual.SameLen;
 import org.springframework.beans.factory.annotation.Value;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Description:
@@ -60,7 +54,10 @@ public class FlowGrayInfoLoader {
             HttpRestResult<List<GrayServerRegisterInfoResponse>>
                     result = nacosRestTemplate.post(url, header, Query.EMPTY,
                     body, List.class);
-            return result == null ? Collections.emptyList() : result.getData();
+            if (Objects.isNull(result) || Objects.isNull(result.getData())) {
+               return Collections.emptyList();
+            }
+            return result.getData();
         } catch (Exception e) {
             log.error("load gray server info failed", e);
             return Collections.emptyList();
