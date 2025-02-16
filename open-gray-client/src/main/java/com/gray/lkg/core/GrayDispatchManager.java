@@ -5,7 +5,7 @@ import com.gray.lkg.model.GraySwitchVo;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import org.lkg.simple.ObjectUtil;
+import org.lkg.utils.ObjectUtil;
 
 import java.util.*;
 import java.util.function.Consumer;
