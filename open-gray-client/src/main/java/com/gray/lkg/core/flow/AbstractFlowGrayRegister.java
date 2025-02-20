@@ -8,10 +8,13 @@ import com.gray.lkg.model.GrayServerRegisterInfoResponse;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.lkg.enums.TrueFalseEnum;
+import org.lkg.utils.ObjectUtil;
 import org.lkg.utils.ServerInfo;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Description:
@@ -24,33 +27,49 @@ public abstract class AbstractFlowGrayRegister implements FlowGrayRegister {
 
 
     private final FlowGrayInfoLoader flowGrayInfoLoader;
+    private final ReentrantLock reentrantLock = new ReentrantLock();
+    private final AtomicBoolean registered = new AtomicBoolean();
 
     @Override
     public void register() {
-        String serverName = ServerInfo.name();
-        String ip = ServerInfo.innerIp();
-        Integer port = ServerInfo.port();
         String instanceName = GrayConst.getInstanceName();
-        log.info("current instance name:{}", instanceName);
-        List<GrayServerRegisterInfoResponse> registerInfoResponses = flowGrayInfoLoader.loadGrayList(serverName, instanceName, port);
-        boolean originRegisterStatus = true;
-        for (GrayServerRegisterInfoResponse registerInfo : registerInfoResponses) {
-            if (!Objects.equals(registerInfo.getServerName(), serverName)
-                    || !Objects.equals(ip, registerInfo.getIp())
-                    || !Objects.equals(port, registerInfo.getPort())) {
-                continue;
-            }
-            log.info("found graying instance:{}, will enable namespace:{}", instanceName, registerInfo.getGrayServerName());
-            boolean allOpen = TrueFalseEnum.isTrue(registerInfo.getStatus()) && TrueFalseEnum.isTrue(registerInfo.getControlType());
-            updateNacosStatus(allOpen, registerInfo.getGrayServerName(), ip, port);
-            if (TrueFalseEnum.isTrue(registerInfo.getStatus()) || TrueFalseEnum.isTrue(registerInfo.getControlType())) {
-                originRegisterStatus = false;
-            }
+        if (!reentrantLock.tryLock() || registered.get()) {
+            log.info("current instance name:{} has registered", instanceName);
+            return;
         }
-        updateNacosStatus(originRegisterStatus, serverName, ip, port);
+        try {
+            reentrantLock.lock();
+
+            String serverName = ServerInfo.name();
+            String ip = ServerInfo.innerIp();
+            Integer port = ServerInfo.port();
+            log.info("current instance name:{}", instanceName);
+            List<GrayServerRegisterInfoResponse> registerInfoResponses = flowGrayInfoLoader.loadGrayList(serverName, instanceName, port);
+            boolean isGray = false;
+            for (GrayServerRegisterInfoResponse registerInfo : registerInfoResponses) {
+                if (!Objects.equals(registerInfo.getServerName(), serverName)
+                        || !Objects.equals(ip, registerInfo.getIp())
+                        || !Objects.equals(port, registerInfo.getPort())) {
+                    continue;
+                }
+                log.info("found graying instance:{}, will enable namespace:{}", instanceName, registerInfo.getGrayServerName());
+                boolean allOpen = TrueFalseEnum.isTrue(registerInfo.getStatus()) && TrueFalseEnum.isTrue(registerInfo.getControlType());
+                registerWithBeat(allOpen, registerInfo.getGrayServerName(), ip, port);
+                if (TrueFalseEnum.isTrue(registerInfo.getStatus()) || TrueFalseEnum.isTrue(registerInfo.getControlType())) {
+                    isGray = true;
+                }
+            }
+            if (ObjectUtil.isEmpty(registerInfoResponses)) {
+                registerWithBeat(true, serverName, ip, port);
+            } else {
+                flowGrayInfoLoader.registerWithOutBeatAndNoWeight(serverName, ip, port, isGray);
+            }
+        } finally {
+            reentrantLock.unlock();
+        }
     }
 
-    private void updateNacosStatus(boolean enable, String serverName, String ip, Integer port) {
+    private void registerWithBeat(boolean enable, String serverName, String ip, Integer port) {
         try {
             NamingService namingService = flowGrayInfoLoader.getNamingService();
             namingService.deregisterInstance(serverName, ip, port);
@@ -60,10 +79,12 @@ public abstract class AbstractFlowGrayRegister implements FlowGrayRegister {
             instance.setPort(port);
             instance.setEnabled(enable);
             namingService.registerInstance(serverName, instance);
-            log.info("gray auto register:{} success, enable:{}", serverName, enable);
+            log.info("server:{} registered, enable:{}", serverName, enable);
         } catch (NacosException e) {
             log.error("gray auto register fail:", e);
             throw new RuntimeException(e);
         }
     }
+
+
 }
