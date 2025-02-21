@@ -54,14 +54,15 @@ public abstract class AbstractFlowGrayRegister implements FlowGrayRegister {
                 }
                 log.info("found graying instance:{}, will enable namespace:{}", instanceName, registerInfo.getGrayServerName());
                 boolean allOpen = TrueFalseEnum.isTrue(registerInfo.getStatus()) && TrueFalseEnum.isTrue(registerInfo.getControlType());
-                registerWithBeat(allOpen, registerInfo.getGrayServerName(), ip, port);
+                registerWithBeat(allOpen, registerInfo.getGrayServerName(), ip, port, true);
                 if (TrueFalseEnum.isTrue(registerInfo.getStatus()) || TrueFalseEnum.isTrue(registerInfo.getControlType())) {
                     isGray = true;
                 }
             }
             if (ObjectUtil.isEmpty(registerInfoResponses)) {
-                registerWithBeat(true, serverName, ip, port);
+                registerWithBeat(true, serverName, ip, port, false);
             } else {
+                // 从某种意义上来说，有灰度节点可以不挂，取决运维平台是否会手动干预，如果干预就需要避免影响CI/CD流程
                 flowGrayInfoLoader.registerWithOutBeatAndNoWeight(serverName, ip, port, isGray);
             }
         } finally {
@@ -69,7 +70,7 @@ public abstract class AbstractFlowGrayRegister implements FlowGrayRegister {
         }
     }
 
-    private void registerWithBeat(boolean enable, String serverName, String ip, Integer port) {
+    private void registerWithBeat(boolean enable, String serverName, String ip, Integer port, boolean grayNode) {
         try {
             NamingService namingService = flowGrayInfoLoader.getNamingService();
             namingService.deregisterInstance(serverName, ip, port);
@@ -78,6 +79,16 @@ public abstract class AbstractFlowGrayRegister implements FlowGrayRegister {
             instance.setIp(ip);
             instance.setPort(port);
             instance.setEnabled(enable);
+            if (grayNode) {
+                // 剔除曾经挂靠的实例
+                List<Instance> allInstances = namingService.getAllInstances(serverName);
+                if (ObjectUtil.isNotEmpty(allInstances)) {
+                    for (Instance val : allInstances) {
+                        flowGrayInfoLoader.updateInstance(serverName, val.getIp(), val.getPort(), false);
+                        namingService.deregisterInstance(serverName, val.getIp(), val.getPort());
+                    }
+                }
+            }
             namingService.registerInstance(serverName, instance);
             log.info("server:{} registered, enable:{}", serverName, enable);
         } catch (NacosException e) {
