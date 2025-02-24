@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Date: 2025/2/11 1:57 PM
  */
 @Slf4j
-public abstract class FlowGrayRegisterAwareListener implements ApplicationContextAware, ApplicationListener<WebServerInitializedEvent> {
+public class FlowGrayRegisterAwareListener implements ApplicationContextAware, ApplicationListener<WebServerInitializedEvent> {
 
     private ApplicationContext applicationContext;
     private Environment environment;
