@@ -1,15 +1,17 @@
 package com.gray.lkg.core;
 
-import com.gray.lkg.client.GrayClient;
 import com.gray.lkg.model.GraySwitchVo;
 import com.gray.lkg.model.GrayTypeEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.lkg.enums.StringEnum;
 import org.lkg.utils.ObjectUtil;
-
+import org.lkg.utils.UrlUtil;
+import org.lkg.utils.matcher.AntPathMatcher;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -20,10 +22,11 @@ import java.util.Objects;
  */
 @Slf4j
 public abstract class AbstractGrayInterceptor<Req, Resp> {
-//
+    //
 //    private final Map<String, GraySwitchVo> graySwitchMetaMap = new HashMap<>();
 //    private final Map<String, GrayClient> clientMap = new HashMap<>();
     private final GraySwitchService graySwitchService;
+    private final AntPathMatcher antPathMatcher = new AntPathMatcher();
 
     public AbstractGrayInterceptor(GraySwitchService graySwitchService) {
 //        GrayDispatchManager.addGrayEvent(this::onGrayEvent);
@@ -57,7 +60,10 @@ public abstract class AbstractGrayInterceptor<Req, Resp> {
 //        }
         // 基于uri 优先级最高
         if (ObjectUtil.isNotEmpty(graySwitchVo.getNewDownStream()) && ObjectUtil.isNotEmpty(graySwitchVo.getNewUri())) {
-            String newURl = StringEnum.HTTP_PREFIX + graySwitchVo.getNewDownStream() + graySwitchVo.getNewUri();
+            String pattern = StringEnum.HTTP_PREFIX + graySwitchVo.getOldDownStream() + graySwitchVo.getOldUri();
+            Map<String, Object> params = new HashMap<>(antPathMatcher.extractUriTemplateVariables(pattern, url));
+            String newUrl = UrlUtil.populateTemplate(params, graySwitchVo.getNewUri());
+            String newURl = StringEnum.HTTP_PREFIX + graySwitchVo.getNewDownStream() + newUrl;
             int i = url.indexOf("?");
             if (i > 0) {
                 newURl += url.substring(i);
