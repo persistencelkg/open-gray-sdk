@@ -28,6 +28,8 @@ public class RestTemplateGrayInterceptor extends AbstractGrayInterceptor<HttpReq
     @Override
     public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
         RestTemplateExecution restTemplateExecution = new RestTemplateExecution(request, body, execution);
+        // url 已经解析变量的路径  getPath
+        // uri 包括模版变量  toString
         return super.flowIntercept(restTemplateExecution, request.getURI().getPath(), request.getURI().toString());
     }
 
